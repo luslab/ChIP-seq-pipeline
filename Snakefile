@@ -11,7 +11,9 @@ rule sra_to_fastq:
 	output:
 		temp("fastq/{sample}_1.fastq.gz"),
 		# temp("fastq/{sample}_2.fastq.gz")
+	log:
+		"logs/fastq-dump/{sample}.log"
 	params:
-		fd="--outdir fastq --gzip --skip-technical --readids --origfmt --dumpbase --split-files --clip"
+		options="--outdir fastq --gzip --skip-technical --readids --origfmt --dumpbase --split-files --clip"
 	shell:
-		"fastq-dump {params.fd} {input}"
+		"fastq-dump {params.options} {input} &> {log}"
