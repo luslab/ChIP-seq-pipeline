@@ -9,7 +9,7 @@ rule sra_to_fastq:
 	input:
 		"data/{sample}"
 	output:
-		temp("fastq/{sample}_1.fastq.gz"),
+		"fastq/{sample}_1.fastq.gz"
 		# temp("fastq/{sample}_2.fastq.gz")
 	log:
 		"logs/fastq-dump/{sample}.log"

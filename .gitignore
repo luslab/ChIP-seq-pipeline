@@ -2,3 +2,13 @@ data
 data/*
 .snakemake
 .snakemake/*
+sratoolkit.2.8.2-1-mac64
+sratoolkit.2.8.2-1-mac64/*
+TrimGalore-0.4.3
+TrimGalore-0.4.3/*
+trim_galore.tar.gz
+fastq
+fastq/*
+logs
+logs/*
+.DS_Store
