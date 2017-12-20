@@ -9,6 +9,8 @@ TrimGalore-0.4.3/*
 trim_galore.tar.gz
 fastq
 fastq/*
+fastqc
+fastqc/*
 logs
 logs/*
 .DS_Store
