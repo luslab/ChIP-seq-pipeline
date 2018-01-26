@@ -14,3 +14,13 @@ fastqc/*
 logs
 logs/*
 .DS_Store
+*.bt2
+SRR1635435_1_fastqc.zip_trimmed.fq
+*.fa
+*.sizes
+*.gz
+SRR1635435_1.fastq.gz_trimming_report.txt
+trim_galore/SRR1635436_1.fastq.gz_trimming_report.txt
+SRR1635435_1_fastqc.zip_trimming_report.txt
+trim_galore/SRR1635459_1.fastq.gz_trimming_report.txt
+trim_galore/SRR1635460_1.fastq.gz_trimming_report.txt
