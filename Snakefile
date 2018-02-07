@@ -46,10 +46,10 @@ rule bowtie2_align:
 	input:
 		"trim_galore/{sample}_1_trimmed.fq.gz"
 	output:
-		samfile="bow/{sample}_1_unique.sam",
+		samfile=temp("bow/{sample}_1_unique.sam"),
 		unique="bow/{sample}_1_unique.bam",
-		output="bow/{sample}_1_output.bam",
-		header="bow/{sample}_1_header.bam"
+		output=temp("bow/{sample}_1_output.bam"),
+		header=temp("bow/{sample}_1_header.bam")
 	threads: 2
 	shell:
 		"""
@@ -57,5 +57,4 @@ rule bowtie2_align:
 		samtools view -bS -t human/human.fa.fai {output.samfile} > {output.output}
 		samtools view -H {output.output} > {output.header}
 		samtools view -F 4 {output.output} | grep -v "XS:" | cat {output.header} - | samtools view -b - > {output.unique}
-		rm {output.header}
 		"""
