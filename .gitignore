@@ -26,3 +26,5 @@ trim_galore/SRR1635459_1.fastq.gz_trimming_report.txt
 trim_galore/SRR1635460_1.fastq.gz_trimming_report.txt
 human/human.fa.fai
 test.save
+*.txt
+*.bam

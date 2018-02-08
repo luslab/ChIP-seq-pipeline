@@ -3,7 +3,8 @@ SAMPLES = ["SRR1635435", "SRR1635436", "SRR1635459", "SRR1635460"]
 rule all:
 	input:
 		expand("fastqc/{sample}_1_fastqc.html", sample=SAMPLES),
-		expand("bow/{sample}_1_unique.bam", sample=SAMPLES)
+		expand("bow/{sample}_1_unique.bam", sample=SAMPLES),
+		expand("bow/{sample}_1_NRF.txt", sample=SAMPLES)
 
 rule sra_to_fastq:
 	input:
@@ -58,3 +59,10 @@ rule bowtie2_align:
 		samtools view -H {output.output} > {output.header}
 		samtools view -F 4 {output.output} | grep -v "XS:" | cat {output.header} - | samtools view -b - > {output.unique}
 		"""
+rule NRF:
+	input:
+		"bow/{sample}_1_unique.bam"
+	output:
+		"bow/{sample}_1_NRF.txt"
+	shell:
+		"python NRF.py {input} > {output}"
