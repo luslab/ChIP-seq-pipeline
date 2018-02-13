@@ -28,3 +28,8 @@ human/human.fa.fai
 test.save
 *.txt
 *.bam
+*.bed
+*.narrowPeak
+macs2_model.r
+macs2_peaks.xls
+.Rapp.history

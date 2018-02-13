@@ -4,7 +4,8 @@ rule all:
 	input:
 		expand("fastqc/{sample}_1_fastqc.html", sample=SAMPLES),
 		expand("bow/{sample}_1_unique.bam", sample=SAMPLES),
-		expand("bow/{sample}_1_NRF.txt", sample=SAMPLES)
+		expand("bow/{sample}_1_NRF.txt", sample=SAMPLES),
+		"macs2_peaks.narrowPeak"
 
 rule sra_to_fastq:
 	input:
@@ -66,3 +67,12 @@ rule NRF:
 		"bow/{sample}_1_NRF.txt"
 	shell:
 		"python NRF.py {input} > {output}"
+
+rule peak_calling:
+	input:
+		control=expand("bow/{sample}_1_unique.bam", sample=SAMPLES[1:2]),
+		target=expand("bow/{sample}_1_unique.bam", sample=SAMPLES[3:4])
+	output:
+		"macs2_peaks.narrowPeak"
+	shell:
+		"macs2 callpeak -t {input.target} -c {input.control} -f BAM -n macs2"
