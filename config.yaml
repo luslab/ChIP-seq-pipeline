@@ -1,0 +1,10 @@
+samples:
+  Control_rep1: data/SRR1635435
+  Control_rep2: data/SRR1635436
+  FoxA1_rep1: data/SRR1635459
+  FoxA1_rep2: data/SRR1635460
+# SAMPLES:
+#     A: SRR1635435
+#     B: SRR1635436
+#     C: SRR1635459
+#     D: SRR1635460

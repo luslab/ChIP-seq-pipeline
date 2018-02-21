@@ -1,15 +1,15 @@
-SAMPLES = ["SRR1635435", "SRR1635436", "SRR1635459", "SRR1635460"]
+configfile: "config.yaml"
 
 rule all:
 	input:
-		expand("fastqc/{sample}_1_fastqc.html", sample=SAMPLES),
-		expand("bow/{sample}_1_unique.bam", sample=SAMPLES),
-		expand("bow/{sample}_1_NRF.txt", sample=SAMPLES),
+		expand("fastqc/{sample}_1_fastqc.html", sample=config["samples"]),
+		expand("bow/{sample}_1_unique.bam", sample=config["samples"]),
+		expand("bow/{sample}_1_NRF.txt", sample=config["samples"]),
 		"macs2_peaks.narrowPeak"
 
 rule sra_to_fastq:
 	input:
-		"data/{sample}"
+		lambda wildcards: config["samples"][wildcards.sample]
 	output:
 		"fastq/{sample}_1.fastq.gz"
 		# temp("fastq/{sample}_2.fastq.gz")
@@ -70,9 +70,14 @@ rule NRF:
 
 rule peak_calling:
 	input:
-		control=expand("bow/{sample}_1_unique.bam", sample=SAMPLES[1:2]),
-		target=expand("bow/{sample}_1_unique.bam", sample=SAMPLES[3:4])
+		expand("bow/{sample}_1_unique.bam", sample=config["samples"])
 	output:
 		"macs2_peaks.narrowPeak"
-	shell:
-		"macs2 callpeak -t {input.target} -c {input.control} -f BAM -n macs2"
+	run:
+		control = list(filter(lambda x: 'Control' in x, input))
+		target = list(filter(lambda x: 'Control' not in x, input))
+		shell('macs2 callpeak -t {target} -c {control} -f BAM -n macs2')
+
+
+	# shell:
+	# 	"macs2 callpeak -t {input} -c {input} -f BAM -n macs2"
