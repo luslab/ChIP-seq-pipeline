@@ -20,7 +20,7 @@ rule all:
 		expand(RESULTS_PATH+"/fastqc/{sample}_1_fastqc.html", sample=config["samples"]),
 		expand(RESULTS_PATH+"/mapped/{sample}_1_unique.bam", sample=config["samples"]),
 		expand(RESULTS_PATH+"/nrf/{sample}_1_NRF.txt", sample=config["samples"]),
-		RESULTS_PATH+"/macs2_peaks.narrowPeak"
+		RESULTS_PATH+"/peaks/macs2_peaks.narrowPeak"
 
 rule sra_to_fastq:
 	input:
@@ -87,14 +87,14 @@ rule NRF:
 		RESULTS_PATH+"/mapped/{sample}_1_unique.bam"
 	output:
 		RESULTS_PATH+"/nrf/{sample}_1_NRF.txt"
-	shell:
-		"python NRF.py {input} > {output}"
+	script:
+		PATH+"/NRF.py"
 
 rule peak_calling:
 	input:
 		expand(RESULTS_PATH+"/mapped/{sample}_1_unique.bam", sample=config["samples"])
 	output:
-		RESULTS_PATH+"/macs2_peaks.narrowPeak"
+		RESULTS_PATH+"/peaks/macs2_peaks.narrowPeak"
 	params:
 		outdir=RESULTS_PATH
 	run:
@@ -119,6 +119,6 @@ rule dag_complete:
 		expand(RESULTS_PATH+"/fastqc/{sample}_1_fastqc.html", sample=config["samples"]),
 		expand(RESULTS_PATH+"/mapped/{sample}_1_unique.bam", sample=config["samples"]),
 		expand(RESULTS_PATH+"/mapped/{sample}_1_NRF.txt", sample=config["samples"]),
-		[RESULTS_PATH+"/macs2_peaks.narrowPeak"]
+		[RESULTS_PATH+"/peaks/macs2_peaks.narrowPeak"]
 	run:
 		shell("snakemake --dag {} | dot -Tpdf > {}".format(" ".join(list(chain.from_iterable(params))), *output))
