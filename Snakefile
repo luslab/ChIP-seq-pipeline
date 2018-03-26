@@ -1,20 +1,35 @@
+from itertools import chain
+
+# Import config file & parameters
 configfile: "config.yaml"
+
+# Import paths from config file
+# PATH = config['snakemake_path']
+PATH = "{}".format(config['global']['snakemake'])
+# RESULTS_PATH = config['results_path']
+RESULTS_PATH = "{}".format(config['global']['results'])
+# GENOME_PATH = config['genome_path']
+GENOME_PATH = "{}/{}".format(config['genome']['path'], config['genome']['name'])
+# ANNOTATION_PATH = config['annotation_path']
+ANNOTATION_PATH = "{}/{}".format(config['annotation']['path'], config['annotation']['name'])
+# STAR_INDEX_PATH = config['star_index_path']
+BT2_INDEX_PATH = "{}/{}".format(config['alignment']['path'], config['alignment']['bowtie2'])
 
 rule all:
 	input:
-		expand("fastqc/{sample}_1_fastqc.html", sample=config["samples"]),
-		expand("bow/{sample}_1_unique.bam", sample=config["samples"]),
-		expand("bow/{sample}_1_NRF.txt", sample=config["samples"]),
-		"macs2_peaks.narrowPeak"
+		expand(RESULTS_PATH+"/fastqc/{sample}_1_fastqc.html", sample=config["samples"]),
+		expand(RESULTS_PATH+"/mapped/{sample}_1_unique.bam", sample=config["samples"]),
+		expand(RESULTS_PATH+"/nrf/{sample}_1_NRF.txt", sample=config["samples"]),
+		RESULTS_PATH+"/macs2_peaks.narrowPeak"
 
 rule sra_to_fastq:
 	input:
 		lambda wildcards: config["samples"][wildcards.sample]
 	output:
-		"fastq/{sample}_1.fastq.gz"
+		RESULTS_PATH+"/fastq/{sample}_1.fastq.gz"
 		# temp("fastq/{sample}_2.fastq.gz")
 	log:
-		"logs/fastq-dump/{sample}.log"
+		RESULTS_PATH+"/logs/fastq-dump/{sample}.log"
 	params:
 		options="--outdir fastq --gzip --skip-technical --readids --origfmt --dumpbase --split-files --clip"
 	shell:
@@ -22,37 +37,44 @@ rule sra_to_fastq:
 
 rule fastq_to_fastqc:
 	input:
-		"fastq/{sample}_1.fastq.gz"
+		RESULTS_PATH+"/fastq/{sample}_1.fastq.gz"
 	output:
-		"fastqc/{sample}_1_fastqc.html"
+		RESULTS_PATH+"/fastqc/{sample}_1_fastqc.html",
+		temp(RESULTS_PATH+"/fastqc/{sample}_1_fastqc.zip")
 	shell:
 		"fastqc -o fastqc {input}"
 
 rule trimgalore:
 	input:
-		"fastq/{sample}_1.fastq.gz"
+		RESULTS_PATH+"/fastq/{sample}_1.fastq.gz"
 	output:
-		"trim_galore/{sample}_1_trimmed.fq.gz"
+		RESULTS_PATH+"/trimmed/{sample}_1_trimmed.fq.gz"
+	log:
+		RESULTS_PATH+"/logs/trim_galore/{sample}.log"
 	shell:
-		"trim_galore --length 16 --output_dir trim_galore {input}"
+		"""
+		trim_galore --length 16 --output_dir trim_galore {input}
+		mv {input}_trimming_report.txt {log}
+		"""
 
 rule bowtie2_index:
 	input:
-		"genome/human.fa.gz"
+		GENOME_PATH
 	output:
-		"bow/human.*.bt2"
-	shell:
-		"bowtie2-build {input} bow/human"
+		expand(BT2_INDEX_PATH+".{count}.bt2", count=['1', '2', '3', '4']),
+		expand(BT2_INDEX_PATH+".rev.{count}.bt2", count=['1', '2'])
+	run:
+		shell("bowtie2-build {input} "+BT2_INDEX_PATH)
 
 rule bowtie2_align:
 	input:
-		"trim_galore/{sample}_1_trimmed.fq.gz"
+		RESULTS_PATH+"/trimmed/{sample}_1_trimmed.fq.gz"
 	output:
-		samfile=temp("bow/{sample}_1_unique.sam"),
-		unique="bow/{sample}_1_unique.bam",
-		output=temp("bow/{sample}_1_output.bam"),
-		header=temp("bow/{sample}_1_header.bam")
-	threads: 2
+		samfile=temp(RESULTS_PATH+"/mapped/{sample}_1_unique.sam"),
+		unique=RESULTS_PATH+"/mapped/{sample}_1_unique.bam",
+		output=temp(RESULTS_PATH+"/mapped/{sample}_1_output.bam"),
+		header=temp(RESULTS_PATH+"/mapped/{sample}_1_header.bam")
+	threads: 8
 	shell:
 		"""
 		bowtie2 -x human/human -S {output.samfile} -p {threads} -U {input}
@@ -62,22 +84,41 @@ rule bowtie2_align:
 		"""
 rule NRF:
 	input:
-		"bow/{sample}_1_unique.bam"
+		RESULTS_PATH+"/mapped/{sample}_1_unique.bam"
 	output:
-		"bow/{sample}_1_NRF.txt"
+		RESULTS_PATH+"/nrf/{sample}_1_NRF.txt"
 	shell:
 		"python NRF.py {input} > {output}"
 
 rule peak_calling:
 	input:
-		expand("bow/{sample}_1_unique.bam", sample=config["samples"])
+		expand(RESULTS_PATH+"/mapped/{sample}_1_unique.bam", sample=config["samples"])
 	output:
-		"macs2_peaks.narrowPeak"
+		RESULTS_PATH+"/macs2_peaks.narrowPeak"
+	params:
+		outdir=RESULTS_PATH
 	run:
 		control = list(filter(lambda x: 'Control' in x, input))
 		target = list(filter(lambda x: 'Control' not in x, input))
-		shell('macs2 callpeak -t {target} -c {control} -f BAM -n macs2')
+		shell('macs2 callpeak -t {target} -c {control} -f BAM --outdir {params.outdir} -n macs2')
 
+rule dag:
+	output:
+		RESULTS_PATH+"/dag.pdf"
+	params:
+		expand(RESULTS_PATH+"/fastqc/{sample}_1_fastqc.html", sample=config["samples"]),
+		expand(RESULTS_PATH+"/mapped/{sample}_1_unique.bam", sample=config["samples"]),
+		expand(RESULTS_PATH+"/mapped/{sample}_1_NRF.txt", sample=config["samples"]),
+	run:
+		shell("snakemake --dag {} | dot -Tpdf > {}".format(" ".join([ item[0] for item in params]), *output))
 
-	# shell:
-	# 	"macs2 callpeak -t {input} -c {input} -f BAM -n macs2"
+rule dag_complete:
+	output:
+		RESULTS_PATH+"/dag_complete.pdf"
+	params:
+		expand(RESULTS_PATH+"/fastqc/{sample}_1_fastqc.html", sample=config["samples"]),
+		expand(RESULTS_PATH+"/mapped/{sample}_1_unique.bam", sample=config["samples"]),
+		expand(RESULTS_PATH+"/mapped/{sample}_1_NRF.txt", sample=config["samples"]),
+		[RESULTS_PATH+"/macs2_peaks.narrowPeak"]
+	run:
+		shell("snakemake --dag {} | dot -Tpdf > {}".format(" ".join(list(chain.from_iterable(params))), *output))

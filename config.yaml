@@ -1,10 +1,21 @@
+# Define pipeline paths
+global:
+  snakemake: /Users/agostif/Documents/GitHub/ChIP-seq-pipeline
+  results: /Users/agostif/Documents/GitHub/ChIP-seq-pipeline/results
+
+# Define mapping and annotation paths
+genome:
+  path: /Users/agostif/Desktop/Genomes\ and\ annotations
+  name: GRCm38.primary_assembly.genome.fa.gz
+annotation:
+  path: /Users/agostif/Desktop/Genomes\ and\ annotations
+  name: gencode.v27.annotation.gtf.gz
+alignment:
+  path: /Users/agostif/Desktop/Genomes\ and\ annotations
+  bowtie2: GRCm38.primary_assembly.genome
+
 samples:
-  Control_rep1: data/SRR1635435
-  Control_rep2: data/SRR1635436
-  FoxA1_rep1: data/SRR1635459
-  FoxA1_rep2: data/SRR1635460
-# SAMPLES:
-#     A: SRR1635435
-#     B: SRR1635436
-#     C: SRR1635459
-#     D: SRR1635460
+  Control_rep1: ["data/SRR1635435"]
+  Control_rep2: ["data/SRR1635436"]
+  FoxA1_rep1: ["data/SRR1635459"]
+  FoxA1_rep2: ["data/SRR1635460"]
