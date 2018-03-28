@@ -1,19 +1,28 @@
-# Define pipeline paths
+# Define pipeline global paths
 global:
-  snakemake: /Users/agostif/Documents/GitHub/ChIP-seq-pipeline
-  results: /Users/agostif/Documents/GitHub/ChIP-seq-pipeline/results
+  snakemake: $HOME/ChIP-seq-pipeline
+  results: $HOME/results
 
-# Define mapping and annotation paths
+# Define genome, annotation and alignment paths
 genome:
-  path: /Users/agostif/Desktop/Genomes\ and\ annotations
+  path: $HOME/Genomes_and_annotations
   name: GRCm38.primary_assembly.genome.fa.gz
 annotation:
-  path: /Users/agostif/Desktop/Genomes\ and\ annotations
+  path: $HOME/Genomes_and_annotations
   name: gencode.v27.annotation.gtf.gz
 alignment:
-  path: /Users/agostif/Desktop/Genomes\ and\ annotations
+  path: $HOME/Genomes_and_annotations
   bowtie2: GRCm38.primary_assembly.genome
 
+# Define algorithms' parameters (NB: the output folders are already set and must not be changed!)
+parameters:
+  fastq_dump: "--gzip --skip-technical --readids --origfmt --dumpbase --split-files --clip"
+  fastqc: ""
+  trim_galore: "--length 16"
+  bowtie2: ""
+  macs2: ""
+
+# Define sample names and paths
 samples:
   Control_rep1: ["data/SRR1635435"]
   Control_rep2: ["data/SRR1635436"]

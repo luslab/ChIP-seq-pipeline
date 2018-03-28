@@ -1,21 +1,33 @@
-# ChIP-seq pipeline
+## ChIP-seq pipeline
 
-This repository contains scripts for the analysis of the Transcription Factor ChIP-seq (TF ChIP-seq) data ([GEO: GSE59530](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE59530)) from [Franco HL, _et al._, 2015](https://www.ncbi.nlm.nih.gov/pubmed/25752574). For the sake of time, we will focus only on the Input and ChIP-seq _FoxA1 Vehicle_ samples without treatments.
+This repository contains a pipeline for the analysis of the Transcription Factor ChIP-seq (TF ChIP-seq) data. 
 
-The aim is to create a TF ChIP-seq pipeline that includes quality controls, data analysis and visualisation. The pipeline will be developed using [Snakemake](http://snakemake.readthedocs.io/en/stable/), a tool to create reproducible and scalable data analyses.
+__Motivation__
 
-## Part 1
+The aim was to create a standard TF ChIP-seq pipeline that included quality controls, data analysis and visualisation.
+The pipeline has been developed using [Snakemake](http://snakemake.readthedocs.io/en/stable/), a tool to create reproducible and scalable data analyses.
 
-### Download and process raw data
+It was primed by Bruce for its Bachelor's project, and then improved by Federico to become a tool than could be applied to any set of ChIP-seq experiments.
 
-The Sequence Read Archives (SRA) files required for this analysis can be retrieved from the the [National Center for Biotechnology Information (NCBI)](https://www.ncbi.nlm.nih.gov/).
+__Requirements__
 
-__Requirements:__
-* `curl`
-* `snakemake` from _Snakemake_
-* `fastq-dump` from [_SRA Toolkit_](https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=software)
+* [Snakemake](http://snakemake.readthedocs.io/en/stable/) with [Python](https://www.python.org/downloads/) >= 3.6 (`os`, `sys`, `re`, `pysam` and `itertools` modules)
+* [_SRA Toolkit_](https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=software)
+* [_FastQC_](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+* [_Trim Galore!_](https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/) and its dependency [_Cutadapt_](https://cutadapt.readthedocs.io/en/stable/)
+* [_Bowtie2_](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
+* [_MACS2_](https://github.com/taoliu/MACS)
 
-Since it is a bit tricky to provide remote files as input in Snakemake, we will download the data externally using `curl`.
+---
+
+### Example
+
+This illustrative case employs data from [Franco HL, _et al._, 2015](https://www.ncbi.nlm.nih.gov/pubmed/25752574).
+For the sake of time, it focuses only on _FoxA1 Vehicle_ ChIP-seq and its control samples without considering any of the treatments.
+
+The Sequence Read Archives (SRA) files can be retrieved from [GEO: GSE59530](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE59530).
+
+Since it is a bit tricky to provide remote files as input in Snakemake, the original data is downloaded externally using `curl` and the `SraAccList.txt` file present in the main folder.
 
 ```
 # Create the output folder
@@ -27,54 +39,95 @@ for sra in `awk '{print $1}' SraAccList.txt`; do
 done
 ```
 
-Have a look at the _Snakemake_ file in the main directory. I have already created some _rules_ to convert the _sra_ data to _fastq_ format. You can run this first step of the pipeline by simply typing `snakemake`.
+Once the download is finished, open the configuration file ('config.yaml') in the main folder and set the correct paths.
+If they do not exists, some of the paths (i.e., results and bowtie2) will be generated during the first run.
+
+Finally, you can type the following command to execute the whole pipeline:
 
 ```
 snakemake
 ```
 
-### Assess reads quality
+In case you would like to perform only the alignment to the genome (no peak calling), you can run:
 
-__Requirements:__
-* `fastqc` from [_FastQC_](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-* fastqc imports data from fastq files, we used gz version is this case
-* FastQC aims to provide a simple way to do some quality control checks on raw sequence data coming from high throughput sequencing pipelines. It provides a modular set of analyses which you can use to give a quick impression of whether your data has any problems of which you should be aware before doing any further analysis.
-* A report showing the quality of the reads is generated for each sample
-### Pre-processing
+```
+snakemake map
+```
 
-__Requirements:__
-* Removing unwanted bases
-* `cutadapt` from [_Cutadapt!_](https://cutadapt.readthedocs.io/en/stable/)
-* `trim_galore` from [_Trim Galore!_](https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/)
-* Trim Galore! is a wrapper script to automate quality and adapter trimming as well as quality control, with some added functionality to remove biased methylation positions for RRBS sequence files (for directional, non-directional (or paired-end) sequencing).
-* trimgalore takes in fq.gz files and generates trimmed fastq files in gz version, we named them.trimmed.fq.gz
+__[Optional] Directed acyclic graph (DAG)__
 
-### Map to the genome
+The DAG, which shows the computational steps that each sample is going through, can be generated using:
 
-__Requirements:__
-* `bowtie2-build` and `bowtie2` from [_Bowtie2_](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
-* Bowtie 2 is an ultrafast and memory-efficient tool for aligning sequencing reads to long reference sequences
-* We downloaded the human genome file from the website then built a human genome index with bowtie2 build.  
-* Then we mapped the reads to the reference genome using bowtie2
-* It takes in trimmed fq.gz files and generates BAM files with unique reads only.
+```
+snakemake dag
+```
 
-### Post-processing
+or you can generate it for the whole workflow with:
 
-Additional quality controls including _Nonredundant Fraction_ (NRF = Unique start positions of uniquely mappable reads / Uniquely mappable reads) and Cross-correlation (Strand cross-correlation is computed as the Pearson correlation between the positive and the negative strand profiles at different strand shift distances, k)
+```
+snakemake dag_complete
+```
 
-## Part 2
+![](img/dag_complete.svg)
 
-### Peak calling
+Figure 1: Schematic of the pipeline workflow.
 
-__Requirements:__
-* `macs2` from [_MACS2_](https://github.com/taoliu/MACS)
-*  MACS captures the influence of genome complexity to evaluate the significance of enriched ChIP regions, and MACS improves the spatial resolution of binding sites through combining the information of both sequencing tag position and orientation. MACS can be easily used for ChIP-Seq data alone, or with control sample with the increase of specificity.
-* In this case, the controls are sample 35 and 36, the targets are sample 59 and 60 of FoxA1.
-* It takes in bam files with only mapped unique reads.
-* It generates various output files, the one we are interested in is the narrowPeak file.
+---
 
-### Consistency of replicates
+### Pipeline breakdown
 
-Calculate the Irreproducible Discovery Rate (IDR)
+#### Steps description
 
-### Visualize the results
+* Quality control on the raw data
+    - Performed with FastQC
+* Trimming of the adapter sequence
+    - Performed with Trim Galore!
+* Alignment to the genome
+    - Performed with Bowtie2
+* Calculation of the non-redundant fraction (NRF) metric
+* Generation of bigWig for visualisation (NOT YET!)
+    - Performed using the ENCODE binaries
+* Peak calling
+    - Performed using Macs2
+* Visualisation of the results (Bruce forgot to commit this one...)
+
+#### [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+
+FastQC aims to provide a simple way to do some quality control checks on raw sequence data coming from high throughput sequencing pipelines. It provides a modular set of analyses which you can use to give a quick impression of whether your data has any problems of which you should be aware before doing any further analysis.
+
+#### [Trim Galore!](https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/)
+
+Trim Galore! is a wrapper script to automate quality and adapter trimming as well as quality control, with some added functionality to remove biased methylation positions for RRBS sequence files (for directional, non-directional (or paired-end) sequencing).
+
+#### [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
+
+Bowtie 2 is an ultrafast and memory-efficient tool for aligning sequencing reads to long reference sequences.
+
+#### [NRF.py](scripts/NRF.py)
+
+This custom script calculates _Non-Redundant Fraction_ (NRF = Unique start positions of uniquely mappable reads / Uniquely mappable reads).
+
+#### Cross-correlation (not yet implemented)
+
+Strand cross-correlation is computed as the Pearson correlation between the positive and the negative strand profiles at different strand shift distances, k.
+
+#### [MACS2](https://github.com/taoliu/MACS)
+
+MACS captures the influence of genome complexity to evaluate the significance of enriched ChIP regions, and MACS improves the spatial resolution of binding sites through combining the information of both sequencing tag position and orientation. MACS can be easily used for ChIP-Seq data alone, or with control sample with the increase of specificity.
+
+_NB: Presently, the algorithm performs the peak calling using a control (must have 'Control' in the sample name) and treatment (everything else)._
+
+#### Consistency of replicates (not yet implemented)
+
+Calculate the Irreproducible Discovery Rate (IDR).
+
+#### Visualize the results (not yet implemented)
+
+---
+
+### To-Do list
+
+  - Cluster support (will be done very soon!)
+  - BigWig coverage files
+  - Matching function for conditions/controls
+  - Paired-end reads support
